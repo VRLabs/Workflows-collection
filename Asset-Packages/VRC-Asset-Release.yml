@@ -3,6 +3,11 @@ on:
   push:
     tags:
       - "*.*.*"
+
+env:
+  ASSETS_PATH: .
+  RELEASE_PATH: Packages
+    
   
 jobs:
   build:
@@ -41,8 +46,8 @@ jobs:
         id: create_packages
         uses: VRLabs/VRCTools-Packaging-Action@v1
         with:
-          path: '.'
-          outputPath: 'Packages'
+          path: '${{ env.ASSETS_PATH }}'
+          outputPath: '${{ env.RELEASE_PATH }}'
           releaseUrl: 'https://github.com/${{ github.repository }}/releases/download/${{ steps.job_data.outputs.version }}/${{ steps.job_data.outputs.package_name }}-${{ steps.job_data.outputs.version }}.zip'
           unityReleaseUrl: 'https://github.com/${{ github.repository }}/releases/download/${{ steps.job_data.outputs.version }}/${{ steps.job_data.outputs.package_name }}-${{ steps.job_data.outputs.version }}.unitypackage'
           releaseVersion: '${{ steps.job_data.outputs.version }}'
