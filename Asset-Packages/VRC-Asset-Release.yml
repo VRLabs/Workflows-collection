@@ -1,0 +1,60 @@
+﻿name: VRC Asset Release
+on:
+  push:
+    tags:
+      - "*.*.*"
+  
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      - name: Check if package.json exists
+        run: |
+          if [ ! -f package.json ]; then
+            echo "package.json not found"
+            exit 1
+          fi
+        
+      - name: Get package.json
+        id: get_package_json
+        run: |
+          echo "package_json=$(cat package.json)" >> $GITHUB_OUTPUT
+
+      - name: Get needed Data
+        id: job_data
+        run: |
+          version=$(echo "${{ github.ref }}" | sed 's/refs\/heads\/release\///')
+          version=$(echo $version | tr '[:upper:]' '[:lower:]')
+          echo "version=$version" >> $GITHUB_OUTPUT
+          major_version=$(echo $version | cut -d '.' -f 1)
+          minor_version=$(echo $version | cut -d '.' -f 2)
+          echo "major_version=$major_version" >> $GITHUB_OUTPUT
+          echo "minor_version=$minor_version" >> $GITHUB_OUTPUT
+          echo "package_name=$(echo ${{ fromJson(steps.get_package_json.outputs.package_json).name }})" >> $GITHUB_OUTPUT
+          echo "package_display_name=$(echo ${{ fromJson(steps.get_package_json.outputs.package_json).displayName }})" >> $GITHUB_OUTPUT
+          
+
+      - name: Create Packages
+        id: create_packages
+        uses: VRLabs/VRCTools-Packaging-Action@v1
+        with:
+          path: '.'
+          outputPath: 'Packages'
+          releaseUrl: 'https://github.com/${{ github.repository }}/releases/download/${{ steps.job_data.outputs.version }}/${{ steps.job_data.outputs.package_name }}-${{ steps.job_data.outputs.version }}.zip'
+          unityReleaseUrl: 'https://github.com/${{ github.repository }}/releases/download/${{ steps.job_data.outputs.version }}/${{ steps.job_data.outputs.package_name }}-${{ steps.job_data.outputs.version }}.unitypackage'
+          releaseVersion: '${{ steps.job_data.outputs.version }}'
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: "${{ steps.job_data.outputs.package_display_name }} ${{ steps.job_data.outputs.version }}"
+          files: |
+            ${{ steps.create_packages.outputs.unityPackagePath }}
+            ${{ steps.create_packages.outputs.vccPackagePath }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_TAG: ${{ steps.job_data.outputs.version }}
