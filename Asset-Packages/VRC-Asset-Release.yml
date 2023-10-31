@@ -7,40 +7,46 @@ on:
 env:
   ASSETS_PATH: .
   RELEASE_PATH: Packages
-    
-  
+
+
 jobs:
   build:
     runs-on: "ubuntu-latest"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        
+
       - name: Check if package.json exists
         run: |
           if [ ! -f package.json ]; then
             echo "package.json not found"
             exit 1
           fi
-        
+
       - name: Get package.json
         id: get_package_json
         run: |
-          echo "package_json=$(cat package.json)" >> $GITHUB_OUTPUT
+          {
+            echo 'package_json<<"""'
+            echo $(cat package.json)
+            echo '"""'
+          } >> $GITHUB_OUTPUT
 
       - name: Get needed Data
         id: job_data
         run: |
-          version=$(echo "${{ github.ref }}" | sed 's/refs\/heads\/release\///')
+          version=$(echo "${{ github.ref_name }}")
           version=$(echo $version | tr '[:upper:]' '[:lower:]')
           echo "version=$version" >> $GITHUB_OUTPUT
           major_version=$(echo $version | cut -d '.' -f 1)
           minor_version=$(echo $version | cut -d '.' -f 2)
           echo "major_version=$major_version" >> $GITHUB_OUTPUT
           echo "minor_version=$minor_version" >> $GITHUB_OUTPUT
-          echo "package_name=$(echo ${{ fromJson(steps.get_package_json.outputs.package_json).name }})" >> $GITHUB_OUTPUT
-          echo "package_display_name=$(echo ${{ fromJson(steps.get_package_json.outputs.package_json).displayName }})" >> $GITHUB_OUTPUT
-          
+          name="${{ fromJson(steps.get_package_json.outputs.package_json).name }}"
+          display_name="${{ fromJson(steps.get_package_json.outputs.package_json).displayName }}"
+          echo "package_name=$name" >> $GITHUB_OUTPUT
+          echo "package_display_name=$display_name" >> $GITHUB_OUTPUT
+
 
       - name: Create Packages
         id: create_packages
