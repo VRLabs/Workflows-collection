@@ -6,8 +6,9 @@ on:
 
 env:
   ASSETS_PATH: .
-  RELEASE_PATH: Packages
-
+  RELEASE_PATH: Packages 
+  ARTIFACT_DURATION: 30 # In days
+  UPLOAD_ENDPOINT: https://api.vrlabs.dev/packages/add
 
 jobs:
   build:
@@ -68,3 +69,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_TAG: ${{ steps.job_data.outputs.version }}
+
+      - name: Add server-json to Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: server-json
+          path: ${{ steps.create_packages.outputs.serverPackageJsonPath }}
+          retention-days: ${{ env.ARTIFACT_DURATION }} 
+
+      - name: Send package info to a server
+        run: |
+          curl -X POST -H "Content-Type: application/json" -H "Vrl-Api-Key: ${{ secrets.LISTINGS_API_KEY }}" --data @${{ steps.create_packages.outputs.serverPackageJsonPath }} ${{ env.UPLOAD_ENDPOINT }} || exit 0
+        shell: bash
