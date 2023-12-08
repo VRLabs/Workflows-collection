@@ -71,7 +71,7 @@ jobs:
           SOURCE_TAG: ${{ steps.job_data.outputs.version }}
 
       - name: Add server-json to Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: server-json
           path: ${{ steps.create_packages.outputs.serverPackageJsonPath }}
