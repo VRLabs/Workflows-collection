@@ -9,15 +9,9 @@ on:
       RELEASE_PATH:
         required: true
         type: string
-      UPLOAD_ENDPOINT:
-        required: true
-        type: string
       TAG:
         required: true
         type: string
-      ARTIFACT_DURATION:
-        required: true
-        type: number
       CHANGELOG:
         required: true
         type: string
@@ -25,27 +19,34 @@ on:
         required: true
         type: string
 
+env:
+  UPLOAD_ENDPOINT: https://api.vrlabs.dev/packages/add
+  ARTIFACT_DURATION: 30
+  RELEASE_PATH: Packages
+
 jobs:
   build:
     runs-on: "ubuntu-latest"
     steps:
       - name: Check if package.json exists
         run: |
-          cd ${{ inputs.ASSETS_PATH }}
+          cd ./Checkout/${{ inputs.ASSETS_PATH }}
           if [ ! -f package.json ]; then
             echo "package.json not found"
             exit 1
           fi
+          cd -
 
       - name: Get package.json
         id: get_package_json
         run: |
-          cd ${{ inputs.ASSETS_PATH }}
+          cd ./Checkout/${{ inputs.ASSETS_PATH }}
           {
             echo 'package_json<<"""'
             echo $(cat package.json)
             echo '"""'
           } >> $GITHUB_OUTPUT
+          cd -
 
       - name: Get needed Data
         id: job_data
@@ -66,7 +67,7 @@ jobs:
         id: create_packages
         uses: VRLabs/VRCTools-Packaging-Action@v1
         with:
-          path: '${{ inputs.ASSETS_PATH }}'
+          path: './Checkout/${{ inputs.ASSETS_PATH }}'
           outputPath: '${{ inputs.RELEASE_PATH }}'
           releaseUrl: 'https://github.com/${{ inputs.repository }}/releases/download/${{ steps.job_data.outputs.version }}/${{ steps.job_data.outputs.package_name }}-${{ steps.job_data.outputs.version }}.zip'
           unityReleaseUrl: 'https://github.com/${{ inputs.repository }}/releases/download/${{ steps.job_data.outputs.version }}/${{ steps.job_data.outputs.package_name }}-${{ steps.job_data.outputs.version }}.unitypackage'
