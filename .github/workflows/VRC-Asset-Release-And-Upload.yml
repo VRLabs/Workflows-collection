@@ -6,9 +6,6 @@ on:
       ASSETS_PATH:
         required: true
         type: string
-      RELEASE_PATH:
-        required: true
-        type: string
       TAG:
         required: true
         type: string
