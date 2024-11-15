@@ -134,9 +134,17 @@ jobs:
       - name: Send Discord Notification
         run: |
           CHANGELOG_ESCAPED="${{ inputs.CHANGELOG }}"
-          CHANGELOG_ESCAPED="${CHANGELOG_ESCAPED//\'/\\\'}" # Escape single quotes
-
+          
+          # Use jq to create the JSON payload
+          json_payload=$(jq -n \
+              --arg repository "${{ inputs.REPOSITORY }}" \
+              --arg tag "${{ inputs.TAG }}" \
+              --arg changelog "$CHANGELOG_ESCAPED" \
+              '{"content": ("## [" + $repository + "] New release published: " + $tag + ".\n\n### Changelog:\n" + $changelog)}'
+          )
+          
+          # Post the payload using curl
           curl -H "Content-Type: application/json" \
-          -X POST \
-          -d "{\"content\": \"## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n$CHANGELOG_ESCAPED\"}" \
-          ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
+               -X POST \
+               -d "$json_payload" \
+               ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
