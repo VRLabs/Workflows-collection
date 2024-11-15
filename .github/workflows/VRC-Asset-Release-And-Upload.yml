@@ -121,4 +121,4 @@ jobs:
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
-          content: '## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n${{ inputs.CHANGELOG }}"'
+          content: $'## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n${{ inputs.CHANGELOG }}"'
