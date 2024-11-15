@@ -114,3 +114,10 @@ jobs:
         run: |
           curl -X POST -H "Content-Type: application/json" -H "Vrl-Api-Key: ${{ secrets.LISTINGS_API_KEY }}" --data @${{ steps.create_packages.outputs.serverPackageJsonPath }} ${{ inputs.UPLOAD_ENDPOINT }} || exit 0
         shell: bash
+
+      - name: Send Discord Notification
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d "{\"content\": \"[${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}. Changelog: ${{ inputs.CHANGELOG }}\"}" \
+          ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
