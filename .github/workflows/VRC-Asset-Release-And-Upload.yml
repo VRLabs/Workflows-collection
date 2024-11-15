@@ -97,6 +97,7 @@ jobs:
           files: |
             ${{ steps.create_packages.outputs.unityPackagePath }}
             ${{ steps.create_packages.outputs.vccPackagePath }}
+          repository: ${{ inputs.REPOSITORY }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SOURCE_TAG: ${{ steps.job_data.outputs.version }}
