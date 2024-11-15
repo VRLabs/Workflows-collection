@@ -89,7 +89,7 @@ jobs:
           releaseVersion: '${{ steps.job_data.outputs.version }}'
 
       - name: Create Changelog
-        run: "printf -- \"${{ inputs.CHANGELOG }}\" > CHANGELOG"
+        run: "echo -e \"${{ inputs.CHANGELOG }}\" > CHANGELOG"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
