@@ -30,10 +30,10 @@ jobs:
     steps:
       - name: Determine checkout ref
         run: |
-          if [[ -z "${{ inputs.COMMIT }}" ]]; then
+          if [[ -z "${{ inputs.CHECKOUT_REF }}" ]]; then
             echo "CHECKOUT_REF=main" >> $GITHUB_ENV
           else
-            echo "CHECKOUT_REF=${{ inputs.COMMIT }}" >> $GITHUB_ENV
+            echo "CHECKOUT_REF=${{ inputs.CHECKOUT_REF }}" >> $GITHUB_ENV
           fi
           
       - name: Checkout code repository
@@ -110,15 +110,16 @@ jobs:
         with:
           name: server-json
           path: ${{ steps.create_packages.outputs.serverPackageJsonPath }}
-          retention-days: ${{ inputs.ARTIFACT_DURATION }} 
+          retention-days: ${{ env.ARTIFACT_DURATION }} 
 
       - name: Send package info to a server
         run: |
-          curl -X POST -H "Content-Type: application/json" -H "Vrl-Api-Key: ${{ secrets.LISTINGS_API_KEY }}" --data @${{ steps.create_packages.outputs.serverPackageJsonPath }} ${{ inputs.UPLOAD_ENDPOINT }} || exit 0
+          curl -X POST -H "Content-Type: application/json" -H "Vrl-Api-Key: ${{ secrets.LISTINGS_API_KEY }}" --data @${{ steps.create_packages.outputs.serverPackageJsonPath }} ${{ env.UPLOAD_ENDPOINT }} || exit 0
         shell: bash
   
       - name: Send Discord Notification
-        uses: tsickert/discord-webhook@v5.3.0
-        with:
-          webhook-url: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
-          content: $'## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n${{ inputs.CHANGELOG }}"'
+               run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{"content": "## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n${{ inputs.CHANGELOG }}"}' \
+          ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
