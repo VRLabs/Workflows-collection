@@ -118,7 +118,7 @@ jobs:
         shell: bash
   
       - name: Send Discord Notification
-               run: |
+        run: |
           curl -H "Content-Type: application/json" \
           -X POST \
           -d '{"content": "## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n${{ inputs.CHANGELOG }}"}' \
