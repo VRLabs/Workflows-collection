@@ -15,6 +15,9 @@ on:
       REPOSITORY:
         required: true
         type: string
+      CHECKOUT_REF:
+        required: true
+        type: string
 
 env:
   UPLOAD_ENDPOINT: https://api.vrlabs.dev/packages/add
@@ -25,6 +28,19 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     steps:
+      - name: Determine checkout ref
+        run: |
+          if [[ -z "${{ inputs.COMMIT }}" ]]; then
+            echo "CHECKOUT_REF=main" >> $GITHUB_ENV
+          else
+            echo "CHECKOUT_REF=${{ inputs.COMMIT }}" >> $GITHUB_ENV
+          fi
+      - name: Checkout code repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.REPOSITORY }}
+          ref: ${{ env.CHECKOUT_REF }}
+          path: ./Checkout
       - name: Check if package.json exists
         run: |
           cd ./Checkout/${{ inputs.ASSETS_PATH }}
