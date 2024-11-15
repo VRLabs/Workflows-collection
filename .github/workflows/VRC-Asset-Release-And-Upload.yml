@@ -35,12 +35,14 @@ jobs:
           else
             echo "CHECKOUT_REF=${{ inputs.COMMIT }}" >> $GITHUB_ENV
           fi
+          
       - name: Checkout code repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.REPOSITORY }}
           ref: ${{ env.CHECKOUT_REF }}
           path: ./Checkout
+          
       - name: Check if package.json exists
         run: |
           cd ./Checkout/${{ inputs.ASSETS_PATH }}
@@ -87,7 +89,7 @@ jobs:
           releaseVersion: '${{ steps.job_data.outputs.version }}'
 
       - name: Create Changelog
-        run: "echo ${{ inputs.CHANGELOG }} > CHANGELOG"
+        run: "printf \"${{ inputs.CHANGELOG }}\" > CHANGELOG"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
