@@ -121,5 +121,5 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d "{\"content\": \"[${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}. Changelog: ${{ inputs.CHANGELOG }}\"}" \
+          -d "{\"content\": \"## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n${{ inputs.CHANGELOG }}\"}" \
           ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
