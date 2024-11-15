@@ -100,7 +100,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Changelog
-        run: "echo -e $'${{ inputs.CHANGELOG }}' > CHANGELOG"
+        run: |
+          CHANGELOG_ESCAPED="${{ inputs.CHANGELOG }}" # Capture the input
+          CHANGELOG_ESCAPED="${CHANGELOG_ESCAPED//\'/\\\'}" # Escape single quotes
+          echo -e "$CHANGELOG_ESCAPED" > CHANGELOG
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -130,7 +133,10 @@ jobs:
   
       - name: Send Discord Notification
         run: |
+          CHANGELOG_ESCAPED="${{ inputs.CHANGELOG }}"
+          CHANGELOG_ESCAPED="${CHANGELOG_ESCAPED//\'/\\\'}" # Escape single quotes
+
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d '{"content": "## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n${{ inputs.CHANGELOG }}"}' \
+          -d "{\"content\": \"## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n$CHANGELOG_ESCAPED\"}" \
           ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
