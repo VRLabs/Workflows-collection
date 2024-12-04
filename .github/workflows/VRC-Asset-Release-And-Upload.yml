@@ -141,7 +141,7 @@ jobs:
           json_payload=$(
             cat <<EOF
           {
-            "content": "## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n$CHANGELOG_ESCAPED"
+            "content": "## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n$CHANGELOG_ESCAPED\n\n[Get it on GitHub](<https://github.com/${{ inputs.REPOSITORY }}/releases/tag/${{ inputs.TAG }}>)\n[Get it on VCC](<https://vrlabs.dev/packages/?package=${{ steps.job_data.outputs.package_name }}>)"
           }
           EOF
           )
