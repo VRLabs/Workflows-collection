@@ -1,0 +1,153 @@
+﻿name: VRC Asset Release and Listing Upload
+
+on:
+  workflow_call:
+    inputs:
+      ASSETS_PATH:
+        required: true
+        type: string
+      TAG:
+        required: true
+        type: string
+      CHANGELOG:
+        required: true
+        type: string
+      REPOSITORY:
+        required: true
+        type: string
+      CHECKOUT_REF:
+        required: true
+        type: string
+
+env:
+  UPLOAD_ENDPOINT: https://api.vrlabs.dev/packages/add
+  ARTIFACT_DURATION: 30
+  RELEASE_PATH: Packages
+
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Determine checkout ref
+        run: |
+          if [[ -z "${{ inputs.CHECKOUT_REF }}" ]]; then
+            echo "CHECKOUT_REF=main" >> $GITHUB_ENV
+          else
+            echo "CHECKOUT_REF=${{ inputs.CHECKOUT_REF }}" >> $GITHUB_ENV
+          fi
+          
+      - name: Checkout code repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.REPOSITORY }}
+          ref: ${{ env.CHECKOUT_REF }}
+          path: ./Checkout
+          
+      - name: Check if package.json exists
+        run: |
+          cd ./Checkout/${{ inputs.ASSETS_PATH }}
+          if [ ! -f package.json ]; then
+            echo "package.json not found"
+            exit 1
+          fi
+          cd -
+
+      - name: Get package.json
+        id: get_package_json
+        run: |
+          cd ./Checkout/${{ inputs.ASSETS_PATH }}
+          {
+            echo 'package_json<<"""'
+            echo $(cat package.json)
+            echo '"""'
+          } >> $GITHUB_OUTPUT
+          cd -
+
+      - name: Get needed Data
+        id: job_data
+        run: |
+          version=$(echo "${{ inputs.TAG }}")
+          version=$(echo $version | tr '[:upper:]' '[:lower:]')
+          echo "version=$version" >> $GITHUB_OUTPUT
+          major_version=$(echo $version | cut -d '.' -f 1)
+          minor_version=$(echo $version | cut -d '.' -f 2)
+          echo "major_version=$major_version" >> $GITHUB_OUTPUT
+          echo "minor_version=$minor_version" >> $GITHUB_OUTPUT
+          name="${{ fromJson(steps.get_package_json.outputs.package_json).name }}"
+          display_name="${{ fromJson(steps.get_package_json.outputs.package_json).displayName }}"
+          echo "package_name=$name" >> $GITHUB_OUTPUT
+          echo "package_display_name=$display_name" >> $GITHUB_OUTPUT
+
+      - name: Create Packages
+        id: create_packages
+        uses: VRLabs/VRCTools-Packaging-Action@v1
+        with:
+          path: './Checkout/${{ inputs.ASSETS_PATH }}'
+          outputPath: '${{ env.RELEASE_PATH }}'
+          releaseUrl: 'https://github.com/${{ inputs.repository }}/releases/download/${{ steps.job_data.outputs.version }}/${{ steps.job_data.outputs.package_name }}-${{ steps.job_data.outputs.version }}.zip'
+          unityReleaseUrl: 'https://github.com/${{ inputs.repository }}/releases/download/${{ steps.job_data.outputs.version }}/${{ steps.job_data.outputs.package_name }}-${{ steps.job_data.outputs.version }}.unitypackage'
+          releaseVersion: '${{ steps.job_data.outputs.version }}'
+          customJsonFields: "changelogUrl=https://github.com/${{ inputs.REPOSITORY }}/releases/tag/${{ inputs.TAG }}"
+
+
+      - name: Create tag
+        run: |
+          cd ./Checkout
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ inputs.TAG }}" "${{ env.CHECKOUT_REF }}"
+          git push origin "${{ inputs.TAG }}"
+          cd -
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Changelog
+        run: |
+          CHANGELOG_ESCAPED="${{ inputs.CHANGELOG }}" # Capture the input
+          CHANGELOG_ESCAPED="${CHANGELOG_ESCAPED//\'/\\\'}" # Escape single quotes
+          echo -e "$CHANGELOG_ESCAPED" > CHANGELOG
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "${{ steps.job_data.outputs.package_display_name }} ${{ steps.job_data.outputs.version }}"
+          body_path: CHANGELOG
+          files: |
+            ${{ steps.create_packages.outputs.unityPackagePath }}
+            ${{ steps.create_packages.outputs.vccPackagePath }}
+          repository: ${{ inputs.REPOSITORY }}
+          tag_name: ${{ inputs.TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_TAG: ${{ steps.job_data.outputs.version }}
+        
+      - name: Add server-json to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-json
+          path: ${{ steps.create_packages.outputs.serverPackageJsonPath }}
+          retention-days: ${{ env.ARTIFACT_DURATION }} 
+
+      - name: Send package info to a server
+        run: |
+          curl -X POST -H "Content-Type: application/json" -H "Vrl-Api-Key: ${{ secrets.LISTINGS_API_KEY }}" --data @${{ steps.create_packages.outputs.serverPackageJsonPath }} ${{ env.UPLOAD_ENDPOINT }} || exit 0
+        shell: bash
+  
+      - name: Send Discord Notification
+        run: |
+          CHANGELOG_ESCAPED="$(echo "${{ inputs.CHANGELOG }}" | sed "s/'/\\'/g")"
+          
+          # Form the JSON payload with a proper multiline string
+          json_payload=$(
+            cat <<EOF
+          {
+            "content": "## [${{ inputs.REPOSITORY }}] New release published: ${{ inputs.TAG }}.\n\n### Changelog:\n$CHANGELOG_ESCAPED"
+          }
+          EOF
+          )
+          
+          # Post the payload using curl
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$json_payload" \
+               ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
